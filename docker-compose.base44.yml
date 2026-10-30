@@ -1,0 +1,53 @@
+services:
+  # One-shot dependency install. The VuePress sites share the root
+  # package.json, so a single installer owns the shared volume.
+  deps:
+    image: node:16-bullseye-slim
+    working_dir: /app
+    volumes:
+      - .:/app
+      - web_node_modules:/app/node_modules
+    command:
+      - sh
+      - -ec
+      - npm install --no-package-lock --no-audit --no-fund
+
+  # Main entry: the rikka.app docs site (www) on host port 3000.
+  # Other sites in the repo run the same way, one at a time:
+  #   npm run appops:dev / shizuku:dev / sr:dev -- --port <port> --host 0.0.0.0
+  # They must not share node_modules/.cache concurrently (see AGENTS.md).
+  web:
+    image: node:16-bullseye-slim
+    working_dir: /app
+    labels:
+      base44.project: "Rikka Apps (www)"
+      base44.kind: "web"
+      base44.port: "3000"
+    command:
+      - sh
+      - -ec
+      - exec npm start
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=development
+    volumes:
+      - .:/app
+      - web_node_modules:/app/node_modules
+    depends_on:
+      deps:
+        condition: service_completed_successfully
+    healthcheck:
+      test:
+        - CMD
+        - node
+        - -e
+        - "require('http').get('http://127.0.0.1:3000/',r=>process.exit(r.statusCode<500?0:1)).on('error',()=>process.exit(1))"
+      interval: 15s
+      timeout: 5s
+      retries: 4
+      start_period: 120s
+    restart: on-failure
+
+volumes:
+  web_node_modules:

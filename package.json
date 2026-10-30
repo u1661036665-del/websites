@@ -6,6 +6,8 @@
     "vuepress-plugin-sitemap": "^2.3.1"
   },
   "scripts": {
+    "start": "vuepress dev www --port 3000 --host 0.0.0.0 --no-clear-screen",
+    "dev": "vuepress dev www --port 3000 --host 0.0.0.0 --no-clear-screen",
     "appops:dev": "vuepress dev appops",
     "appops:build": "vuepress build appops",
     "shizuku:dev": "vuepress dev shizuku",
