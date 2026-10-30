@@ -1,0 +1,131 @@
+# Base44 development environment for the RikkaApps websites monorepo.
+#
+# Four VuePress 1.x documentation sites live in this repository:
+
+# www, appops, shizuku, storage_redirect.  Each runs its own `vuepress dev`
+# server straight from the cloned source, so edits show up via webpack watch.
+# Dependencies are installed once by the one-shot `deps` service into a shared
+# named volume, because the root package.json is shared by all four sites.
+#
+# `webhooks/` is a Cloudflare cache-purge deploy hook driven by GitHub webhooks
+# (it needs webhooks/config.json with Cloudflare credentials). It is not needed
+# to view the sites and is intentionally not part of this file.
+
+name: websites
+
+x-node: &node
+  image: node:20
+  working_dir: /app
+  volumes:
+    - .:/app
+    - node_modules:/app/node_modules
+  environment:
+    # webpack 4 (VuePress 1.x) hashes with md4, which OpenSSL 3 on Node 20 only
+    # offers through the legacy provider.
+    - NODE_OPTIONS=--openssl-legacy-provider
+    - BASE44_PREVIEW_MODE
+  depends_on:
+    deps:
+      condition: service_completed_successfully
+
+x-healthcheck: &healthcheck
+  test: ["CMD", "sh", "-c", "curl -fsS -o /dev/null http://127.0.0.1:8080/"]
+  interval: 15s
+  timeout: 10s
+  retries: 5
+  start_period: 240s
+
+services:
+  deps:
+    image: node:20
+    working_dir: /app
+    volumes:
+      - .:/app
+      - node_modules:/app/node_modules
+    environment:
+      - NODE_OPTIONS=--openssl-legacy-provider
+      - BASE44_PREVIEW_MODE
+    # No lockfile in the repo, so resolve fresh and keep the checkout clean.
+    command: ["sh", "-ec", "npm install --no-package-lock --no-audit --no-fund"]
+
+  www:
+    <<: *node
+    ports:
+      - "3005:8080"
+    command: ["sh", "-ec", "exec ./node_modules/.bin/vuepress dev www --port 8080 --host 0.0.0.0"]
+    labels:
+      base44.project: rikka.app
+      base44.kind: web
+      base44.port: "3005"
+    healthcheck: *healthcheck
+    restart: on-failure
+
+  appops:
+    <<: *node
+    ports:
+      - "3001:8080"
+    command: ["sh", "-ec", "exec ./node_modules/.bin/vuepress dev appops --port 8080 --host 0.0.0.0"]
+    labels:
+      base44.project: App Ops
+      base44.kind: web
+      base44.port: "3001"
+    healthcheck: *healthcheck
+    restart: on-failure
+
+  shizuku:
+    <<: *node
+    ports:
+      - "3002:8080"
+    command: ["sh", "-ec", "exec ./node_modules/.bin/vuepress dev shizuku --port 8080 --host 0.0.0.0"]
+    labels:
+      base44.project: Shizuku
+      base44.kind: web
+      base44.port: "3002"
+    healthcheck: *healthcheck
+    restart: on-failure
+
+  storage_redirect:
+    <<: *node
+    ports:
+      - "3003:8080"
+    command: ["sh", "-ec", "exec ./node_modules/.bin/vuepress dev storage_redirect --port 8080 --host 0.0.0.0"]
+    labels:
+      base44.project: Storage Isolation
+      base44.kind: web
+      base44.port: "3003"
+    healthcheck: *healthcheck
+    restart: on-failure
+
+  # Friends chat: Express + Socket.IO app in chat/, independent of the VuePress
+  # sites. `node --watch` restarts on server changes, static files are served
+  # from the bind mount, rooms/messages persist in the chat_data volume.
+  chat:
+    image: node:20
+    working_dir: /app/chat
+    volumes:
+      - ./chat:/app/chat
+      - chat_node_modules:/app/chat/node_modules
+      - chat_data:/app/chat/data
+    environment:
+      - PORT=3000
+      - CHAT_DATA_DIR=/app/chat/data
+      - BASE44_PREVIEW_MODE
+    ports:
+      - "3000:3000"
+    command: ["sh", "-ec", "npm install --no-package-lock --no-audit --no-fund && exec node --watch server.js"]
+    labels:
+      base44.project: Кръг — чат за приятели
+      base44.kind: web
+      base44.port: "3000"
+    healthcheck:
+      test: ["CMD", "sh", "-c", "curl -fsS -o /dev/null http://127.0.0.1:3000/"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 90s
+    restart: on-failure
+
+volumes:
+  node_modules:
+  chat_node_modules:
+  chat_data:

@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="bg">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#17786a">
+  <title>Кръг — чат за приятели</title>
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <main class="app">
+    <section class="screen" id="screen-landing" hidden>
+      <div class="centered">
+        <p class="brand">Кръг</p>
+        <h1>Чат, в който приятелите ти са на линия.</h1>
+        <p class="lede">Създай чат, изпрати линка на приятелите си и пишете заедно — с жив статус кой е онлайн.</p>
+        <form class="card" id="create-form" novalidate>
+          <label for="create-name">Твоето име</label>
+          <input id="create-name" name="name" type="text" placeholder="Например Ива" autocomplete="nickname" maxlength="24" required>
+          <p class="error" id="create-error" hidden></p>
+          <button class="btn" type="submit">Създай нов чат</button>
+        </form>
+        <p class="hint">Безплатно. Без регистрация — само име и линк за покана.</p>
+      </div>
+    </section>
+
+    <section class="screen" id="screen-join" hidden>
+      <div class="centered">
+        <p class="brand">Покана</p>
+        <h1 id="join-room-name">Чат</h1>
+        <p class="lede">Поканен си в този чат. Въведи име и се присъедини.</p>
+        <form class="card" id="join-form" novalidate>
+          <label for="join-name">Твоето име</label>
+          <input id="join-name" name="name" type="text" placeholder="Например Мартин" autocomplete="nickname" maxlength="24" required>
+          <p class="error" id="join-error" hidden></p>
+          <button class="btn" type="submit">Присъедини се</button>
+        </form>
+      </div>
+    </section>
+
+    <section class="screen" id="screen-notfound" hidden>
+      <div class="centered">
+        <p class="brand">Кръг</p>
+        <h1>Този чат не съществува.</h1>
+        <p class="lede">Линкът може да е сгрешен или чатът вече не е наличен. Създай нов и покани приятелите си.</p>
+        <a class="btn" href="/">Към началото</a>
+      </div>
+    </section>
+
+    <section class="screen room" id="screen-room" hidden>
+      <header class="room-header">
+        <div class="room-title">
+          <h1 id="room-name">Чат</h1>
+          <p class="room-status"><span class="dot" id="status-dot"></span><span id="room-status">Свързване…</span></p>
+        </div>
+        <button class="btn ghost small" id="invite-btn" type="button">Покани</button>
+      </header>
+
+      <div class="invite-panel" id="invite-panel" hidden>
+        <label for="invite-link">Линк за покана</label>
+        <div class="invite-row">
+          <input id="invite-link" type="text" readonly>
+          <button class="btn small" id="copy-btn" type="button">Копирай</button>
+        </div>
+        <p class="hint">Всеки с този линк може да се присъедини към чата.</p>
+      </div>
+
+      <div class="room-body">
+        <ul class="messages" id="messages" aria-live="polite"></ul>
+        <aside class="people">
+          <h2>На линия</h2>
+          <ul id="online-list"></ul>
+        </aside>
+      </div>
+
+      <form class="composer" id="composer">
+        <input id="message-input" type="text" placeholder="Напиши съобщение…" autocomplete="off" maxlength="2000">
+        <button class="btn" type="submit">Изпрати</button>
+      </form>
+    </section>
+  </main>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="/app.js"></script>
+</body>
+</html>
